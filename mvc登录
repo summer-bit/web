@@ -1,0 +1,100 @@
+/*LoginViewModel*/
+using System.ComponentModel.DataAnnotations;
+
+namespace MyMVCLoginApp.Models
+{
+    public class LoginViewModel
+    {
+        [Display(Name="账号名")]
+        [Required,StringLength(maximumLength:20,ErrorMessage ="请输入6-20个字符",MinimumLength =2)]
+        public string Name { get; set; }
+        [Display(Name ="密码")]
+        [Required,MinLength(6)]
+        [DataType(DataType.Password)]
+        public string Pwd { get; set; }
+
+    }
+}
+
+数据库类
+using System.Data.SqlClient;
+
+namespace MyMVCLoginApp.Models
+{
+    public class SqlModel
+    {
+        private static string connStr = "Data Source=.;Initial Catalog=MyLoginSql;Integrated Security=True";
+        public string UesrSelect(string name,string pwd)
+        {
+            using (SqlConnection conn = new SqlConnection(connStr))
+            {
+                conn.Open();
+                SqlCommand cmd = new SqlCommand();
+                cmd.Connection = conn;
+                cmd.CommandText = $"select * from userTable where userName='{name}' and pwd='{pwd}';";
+                cmd.ExecuteNonQuery();
+                SqlDataReader reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    conn.Close();
+                    return "true";
+                }
+                else
+                {
+                    conn.Close();
+                    return "false";
+                }
+            }
+        }
+    }
+}
+
+控制器
+using System;
+using System.Web.Mvc;
+using MyMVCLoginApp.Models;
+
+namespace MyMVCLoginApp.Controllers
+{
+    public class LoginController : Controller
+    {
+        // GET: Login
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        //使用同名成对的方法一个用于访问数据一个用于数据交互，使用HttpGet和HttpPost进行限制
+        [HttpGet]
+        //创建create模板页，基于LoginViewModel
+        public ActionResult Login()
+        {
+            return View();
+        }
+        [HttpPost]
+        public ActionResult Login(LoginViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    SqlModel sqlModel = new SqlModel();
+                    string message = sqlModel.UesrSelect(model.Name, model.Pwd);
+                    if (message == "true")
+                    {
+                        return Content("登陆成功");
+                    }
+                    else
+                    {
+                        return Content("登录失败");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Content(ex.Message);
+                }
+            }
+            return View();
+        }
+    }
+}
